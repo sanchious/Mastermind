@@ -35,28 +35,23 @@ def partial_function(input_function, first_arg, second_arg):
     return partial_function
 
 
+# Multiprocessing function to devide large list in multiple chunks based on the number of cores and process in parallel
 def multi_proc(num_cores, attack_list):
-    # print(f"Starting multiprocessing...")
     print(
-        f"The length of the list being processed is: {len(attack_list):_}")
+        f"The lenght of the list being processed is: {len(attack_list):_}")
     print(
         f"The length of the sublists being processed is: {len(attack_list[0]):_}")
     pool = multiprocessing.Pool(processes=num_cores)
-    # start_time = time.time()
     result = pool.map_async(partial_function(
         curated, my_guess, score), attack_list)
     result = result.get(30)
     pool.close()
     pool.join()
 
-    # end_time = time.time()
-    # run_time = end_time - start_time
-    # print(f"Multiprocessing finished in {run_time:.2f} seconds")
-
+    # Create a unified list from multiple result lists
     unified_list = [s for sublist in result for s in sublist]
-
     print(f"Unified list lenght: {len(unified_list):_}")
-    # print(f"Unified_list list: \n {unified_list}")
+
     return unified_list
 
 
@@ -66,11 +61,14 @@ if __name__ == '__main__':
         sys.exit('Python version < 3.0 does not support modern TLS versions. You will have trouble connecting to our API using Python 2.X.')
 
     email = 'mastermind@praetorian.com'  # Change this!
-    level = 1
-    # num_cores = multiprocessing.cpu_count() + 1
-    num_cores = 5
-    # divide_factor = 10
+    level = 4
+    # num_cores = multiprocessing.cpu_count()
+    num_cores = 11
+    division_factor = int(num_cores / 2)
+    print(
+        f"Number of cores used: {num_cores}\nDivision factor: {division_factor}")
 
+    ############################## Used for level 4 debugging ##############################
     if level == 4:
         # Generate all unique combinations of the attack guesses for level 4 (hard coded)
         print("Creating attack combinations for level 4 with number of Gladiators = %s and number of Weapons = %s. Based on the level response." %
@@ -78,7 +76,7 @@ if __name__ == '__main__':
         attack_combinations4 = list(
             itertools.permutations(list(range(25)), 6))
 
-        # Creating divided_attack_combination for level 4 (hard-coded)
+        # Creating divided_attack_combination (list of sublists) for level 4 (hard-coded)
         print("Creating the divided attack combination for level 4")
         divided_attack_combinations4 = [
             list(attack_combinations4)[i::num_cores]for i in range(num_cores)]
@@ -86,6 +84,7 @@ if __name__ == '__main__':
             f"The length of the divided list for level 4 is: {len(divided_attack_combinations4)}")
         print(
             f"The lenght of sublist for level 4 is: {len(divided_attack_combinations4[0]):_}")
+    ############################## Used for level 4 debugging ##############################
 
     # Get the 'Auth-Token'
     req_auth = requests.post(
@@ -97,10 +96,11 @@ if __name__ == '__main__':
     headers['Content-Type'] = 'application/json'
     print(headers)
 
-    # # Reseting the game
-    req_reset = requests.post(
-        'https://mastermind.praetorian.com/reset/', headers=headers)
-    print(req_reset.json())
+    # # # Reseting the game
+    # # # Comment out when debugging one level
+    # req_reset = requests.post(
+    #     'https://mastermind.praetorian.com/reset/', headers=headers)
+    # print(req_reset.json())
 
     # Interacting with the game. Get the level info
     req_level = requests.get(
@@ -111,23 +111,21 @@ if __name__ == '__main__':
     num_Gladiators = req_level.json()['numGladiators']
     num_Weapons = req_level.json()['numWeapons']
 
-    # weapons_list = list(range(num_Weapons))
+    # weapons list
     print("The list of weapons: ", list(range(num_Weapons)))
 
     # Generate all unique combinations of the attack guesses
-    if level == 4:
+    if level == 4:  # used for level 4 debugging
         attack_combinations = attack_combinations4
-        my_guess = random.choice(attack_combinations)
         divided_attack_combinations = divided_attack_combinations4
     else:
         print("Creating attack combinations with number of Gladiators = %s and number of Weapons = %s. Based on the level response." %
               (num_Gladiators, num_Weapons))
         attack_combinations = list(
             itertools.permutations(list(range(num_Weapons)), num_Gladiators))
-        my_guess = random.choice(attack_combinations)
 
-    # Convert "attack_combinations" tuples to a nested list
-    # attack_combinations = [list(t) for t in attack_combinations]
+    # Chosing the initial guess
+    my_guess = random.choice(attack_combinations)
 
     # print("Available attack combinations are: ", attack_combinations)
     # print(f"Number of possible attacks: {len(attack_combinations)}")
@@ -135,18 +133,14 @@ if __name__ == '__main__':
     curated_attack_combinations = []
     attack_counter = 1
 
-    # Divide the attack_combinations list into a number of sublist based on the number of cores available
-    # divided_attack_combinations = [list(attack_combinations)[i::num_cores]
-    #                                for i in range(num_cores)]
-
     run = True
-
     while run:
+        # For attack with a very large list of attack combinations
         if len(attack_combinations) > 100_000_000:
             print(f"Possible attack combinations more than 100 mio...")
-            master_list = []
+            master_list = []  # Collector list of filtered results
+            # Iterating through the list of lists (devided_attack_combination) and sending attack
             for x in range(num_cores):
-
                 print(f'=====>Sending attack nr.{attack_counter}: {my_guess}')
                 print(
                     f"Number of possible attacks: {len(divided_attack_combinations[x]):_}")
@@ -177,8 +171,9 @@ if __name__ == '__main__':
                     print(
                         f"Starting multiprocessing iteration {x+1}/{num_cores}")
                     start_time = time.time()
+                    # Create a more granular list of lists
                     more_divided_attack_combinations = [list(divided_attack_combinations[x])[
-                        i::num_cores]for i in range(num_cores)]
+                        i::division_factor]for i in range(division_factor)]
                     result = multi_proc(
                         num_cores, more_divided_attack_combinations)
                     end_time = time.time()
@@ -186,20 +181,25 @@ if __name__ == '__main__':
                     master_list.append(result)
                     print(
                         f"Multiprocessing for iteration {x+1}/{num_cores} took {total_time:.2f} seconds.")
+                    # Choose a different attack combination for the next itteration to increase the chances of a better score
                     if score in [[1, 0], [2, 0], [2, 1]]:
+                        # Choose a guess from the filtered list
                         my_guess = random.choice(master_list[-1])
                     print(f"The next guess is: {my_guess}")
                     attack_counter += 1
             if run == False:
                 break
+            # Create a unified list from multiple result lists
             master_list = [s for sublist in master_list for s in sublist]
             print(f"Unified Master list length: {len(master_list):_}")
 
+            # Reset attack combinations list to the filtered list
             attack_combinations = master_list
             my_guess = random.choice(attack_combinations)
             print(f"Next guess will be: {my_guess}")
             curated_attack_combinations = []
 
+        # For attack with a large list of attack combinations - just one iteration of multiprocessing flow
         elif len(attack_combinations) > 3_000_000:
             print(f"Possible attack combinations more than 10 mio...")
             req_attack = requests.post('https://mastermind.praetorian.com/level/{0}/'.format(level),
@@ -271,6 +271,7 @@ if __name__ == '__main__':
                 curated_attack_combinations = []
 
         else:
+            # Attacks with a smaller number of attack combinations
             req_attack = requests.post('https://mastermind.praetorian.com/level/{0}/'.format(level),
                                        data=json.dumps({'guess': my_guess}), headers=headers)
             print(f'=====>Sending attack nr.{attack_counter}: {my_guess}')
@@ -363,6 +364,10 @@ if __name__ == '__main__':
                 print(req_hash)
                 break
 
+            elif {'error': 'Too many guesses. Try again!'}:
+                print(req_response)
+                break
+
             else:
                 score = req_response['response']
                 print(f"The score is: {score}")
@@ -371,17 +376,6 @@ if __name__ == '__main__':
                 curated_attack_combinations = curated(
                     my_guess, score, attack_combinations)
 
-                # for i in range(len(attack_combinations)):
-                #     # print(
-                #     #     f"comparing my_guess: {my_guess} against possible solution {attack_combinations[i]}")
-                #     # if my_guess == attack_combinations[i]:
-                #     #     pass
-                #     if compare_response(my_guess, attack_combinations[i]) == score:
-                #         # print(
-                #         #     f"Looks like compare response: {compare_response(my_guess, attack_combinations[i])} is the same as initial response: {response}")
-                #         curated_attack_combinations.append(attack_combinations[i])
-
-                # print(curated_attack_combinations)
                 attack_combinations = curated_attack_combinations
                 my_guess = random.choice(curated_attack_combinations)
                 curated_attack_combinations = []
