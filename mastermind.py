@@ -62,8 +62,8 @@ if __name__ == '__main__':
 
     email = 'mastermind@praetorian.com'  # Change this!
     level = 4
-    # num_cores = multiprocessing.cpu_count()
-    num_cores = 11
+    num_cores = multiprocessing.cpu_count()
+    # num_cores = 11
     division_factor = int(num_cores / 2)
     print(
         f"Number of cores used: {num_cores}\nDivision factor: {division_factor}")
@@ -96,11 +96,11 @@ if __name__ == '__main__':
     headers['Content-Type'] = 'application/json'
     print(headers)
 
-    # # # Reseting the game
-    # # # Comment out when debugging one level
-    # req_reset = requests.post(
-    #     'https://mastermind.praetorian.com/reset/', headers=headers)
-    # print(req_reset.json())
+    # # Reseting the game
+    # # Comment out when debugging one level
+    req_reset = requests.post(
+        'https://mastermind.praetorian.com/reset/', headers=headers)
+    print(req_reset.json())
 
     # Interacting with the game. Get the level info
     req_level = requests.get(
