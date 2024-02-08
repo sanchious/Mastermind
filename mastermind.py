@@ -62,10 +62,10 @@ if __name__ == '__main__':
 
     email = 'mastermind@praetorian.com'  # Change this!
 
-    # use this to debug a particular level (Disalbe reseting the game)
+    # Use this to debug a particular level (Disable 'reseting the game')
     level = 1
-    num_cores = multiprocessing.cpu_count()
-    # num_cores = 11
+    # num_cores = multiprocessing.cpu_count()
+    num_cores = 11
     division_factor = int(num_cores / 2)
     print(
         f"Number of cores used: {num_cores}\nDivision factor: {division_factor}")
@@ -98,8 +98,8 @@ if __name__ == '__main__':
     headers['Content-Type'] = 'application/json'
     print(headers)
 
-    # # Reseting the game
-    # # Comment out when debugging one level
+    # # # Reseting the game
+    # # # Comment out when debugging one level
     req_reset = requests.post(
         'https://mastermind.praetorian.com/reset/', headers=headers)
     print(req_reset.json())
@@ -273,7 +273,7 @@ if __name__ == '__main__':
                 curated_attack_combinations = []
 
         else:
-            # Attacks with a smaller number of attack combinations
+            # Attacks with a smaller number of attack
             req_attack = requests.post('https://mastermind.praetorian.com/level/{0}/'.format(level),
                                        data=json.dumps({'guess': my_guess}), headers=headers)
             print(f'=====>Sending attack nr.{attack_counter}: {my_guess}')
@@ -366,7 +366,7 @@ if __name__ == '__main__':
                 print(req_hash)
                 break
 
-            elif {'error': 'Too many guesses. Try again!'}:
+            elif req_response == {'error': 'Too many guesses. Try again!'}:
                 print(req_response)
                 break
 
