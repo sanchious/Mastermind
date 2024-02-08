@@ -61,7 +61,9 @@ if __name__ == '__main__':
         sys.exit('Python version < 3.0 does not support modern TLS versions. You will have trouble connecting to our API using Python 2.X.')
 
     email = 'mastermind@praetorian.com'  # Change this!
-    level = 4
+
+    # use this to debug a particular level (Disalbe reseting the game)
+    level = 1
     num_cores = multiprocessing.cpu_count()
     # num_cores = 11
     division_factor = int(num_cores / 2)
