@@ -61,7 +61,7 @@ def multi_proc(num_cores, attack_list):
     start_time = time.time()
     result = pool.map_async(partial_function(
         curated, my_guess, response), attack_list)
-    result = result.get(10)
+    result = result.get(20)
     pool.close()
     pool.join()
 
@@ -79,17 +79,18 @@ def multi_proc(num_cores, attack_list):
 if __name__ == '__main__':
 
     ###########################################################################
-    # Test 1 with fewer attack combinations
-    num_Gladiators = 4
-    num_Weapons = 6
+    # # Test 1 with fewer attack combinations
+    # num_Gladiators = 4
+    # num_Weapons = 6
 
-    # # Test 2 with many attack combinations (cpu intensive - slow)
-    # num_Gladiators = 6
-    # num_Weapons = 25
+    # Test 2 with many attack combinations (cpu intensive - slow)
+    num_Gladiators = 6
+    num_Weapons = 25
 
-    num_cores = multiprocessing.cpu_count()
-    # num_cores = 10
-    # division_factor = 8
+    # num_cores = multiprocessing.cpu_count()
+    num_cores = 4
+    division_factor_iter = 10
+    division_factor_2order = 5
 
     # weapons_list = list(range(num_Weapons))
     print("The list of weapons: ", list(range(num_Weapons)))
@@ -103,21 +104,22 @@ if __name__ == '__main__':
     # print("Available attack combinations are: ", attack_combinations)
     print(f"Number of possible attacks: {len(attack_combinations):_}")
 
-    # Test 1 with fewer attack combinations
-    my_guess = [0, 4, 5, 3]
-    actual_solution = (0, 5, 2, 7)
+    # # Test 1 with fewer attack combinations
+    # my_guess = [0, 4, 5, 3]
+    # actual_solution = (0, 5, 2, 7)
 
-    # # Test 2 with many attack combinations (cpu intensive - slow)
-    # my_guess = [0, 4, 5, 3, 10, 20]
-    # actual_solution = (0, 5, 2, 7, 15, 19)
+    # Test 2 with many attack combinations (cpu intensive - slow)
+    my_guess = [0, 4, 5, 3, 10, 17]
+    actual_solution = (8, 0, 2, 7, 15, 16)
 
     print(
         f"The response would be: {compare_response(my_guess, actual_solution)}")
     response = compare_response(my_guess, actual_solution)
 
-    # Divide the attack_combinations list into a number of sublist based on the number of cores available
-    divided_attack_combinations = [list(attack_combinations)[i::num_cores]
-                                   for i in range(num_cores)]
+    # Divide the attack_combinations list into a number of sublist based on the division factor iteration
+    print("Creating divided attack combination list of lists")
+    divided_attack_combinations = [list(attack_combinations)[i::division_factor_iter]
+                                   for i in range(division_factor_iter)]
 
     print(
         f"The length of the divided list is: {len(divided_attack_combinations)}")
@@ -126,8 +128,8 @@ if __name__ == '__main__':
 
 ###########################################################################
 
-    # partial_function = functools.partial(
-    #     curated, my_guess, response)
+    # # partial_function = functools.partial(
+    # #    curated, my_guess, response)
 
     # print(f"Starting multiprocessing...")
     # pool = multiprocessing.Pool(processes=num_cores)
@@ -145,27 +147,53 @@ if __name__ == '__main__':
     # flat_list = [s for sublist in result for s in sublist]  # flatten list
 
     # print(f"Flatten list lenght: {len(flat_list):_}")
-    # # print(f"Flatten list: \n {flat_list}")
+    # print(f"Flatten list: \n {flat_list}")
 
+    # master_list = []
+    # for x in range(division_factor_iter):
+    #     print(f"Starting iteration {x+1}/{division_factor_iter}")
+    #     print(f"Creating more_divided_attack_combinations...")
+    #     start_time = time.time()
+    #     more_divided_attack_combinations = [list(divided_attack_combinations[x])[
+    #         i::division_factor_2order]for i in range(division_factor_2order)]
+
+    #     result = multi_proc(num_cores, more_divided_attack_combinations)
+    #     master_list.append(result)
+
+    #     end_time = time.time()
+    #     total_time = end_time - start_time
+    #     print(
+    #         f"It took {total_time:.2f} seconds to finish iteration {x+1}/{division_factor_iter}")
+    # master_list = [s for sublist in master_list for s in sublist]
+    # print(f"Flattened master list lenght: {len(master_list):_}")
+    # # print(master_list)
+
+    pool = multiprocessing.Pool(processes=num_cores)
     master_list = []
-    for x in range(num_cores):
-        print(f"Starting iteration {x+1}/{num_cores}")
-        print(f"Creating more_divided_attack_combinations...")
+    for x in range(division_factor_iter):
+        print(
+            f"Starting multiprocessing for iteration {x+1}/{division_factor_iter}...")
         start_time = time.time()
         more_divided_attack_combinations = [list(divided_attack_combinations[x])[
-            i::num_cores]for i in range(num_cores)]
+            i::division_factor_2order]for i in range(division_factor_2order)]
+        result = pool.map_async(partial_function(
+            curated, my_guess, response), more_divided_attack_combinations)
+        result = result.get(20)
 
-        result = multi_proc(num_cores, more_divided_attack_combinations)
-        master_list.append(result)
-
+        flat_list = [s for sublist in result for s in sublist]  # flatten list
+        master_list.append(flat_list)
         end_time = time.time()
-        total_time = end_time - start_time
-        print(
-            f"It took {total_time:.2f} seconds to finish iteration {x+1}/{num_cores}")
+        run_time = end_time - start_time
+        print(f"Multiprocessing finished in {run_time:.2f} seconds")
+
+        # print(f"Flatten list lenght: {len(flat_list):_}")
+
+    pool.close()
+    pool.join()
     master_list = [s for sublist in master_list for s in sublist]
     print(f"Flattened master list lenght: {len(master_list):_}")
-    # print(master_list)
+    print(master_list[0])
 
 
 # Number of possible attacks: 127_512_000
-# Flattened master list lenght: 11_162_880
+# Flattened master list lenght: 41_860_800

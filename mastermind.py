@@ -65,10 +65,14 @@ if __name__ == '__main__':
     # Use this to debug a particular level (Disable 'reseting the game')
     level = 1
     # num_cores = multiprocessing.cpu_count()
-    num_cores = 11
-    division_factor = int(num_cores / 2)
+    num_cores = 5
+    division_factor_iter = 10
+    division_factor_2order = 5
+
     print(
-        f"Number of cores used: {num_cores}\nDivision factor: {division_factor}")
+        f"Number of cores used: {num_cores}.\n"
+        f"Division factor for number of iterations: {division_factor_iter}.\n"
+        f"Division factor for granular split: {division_factor_2order}")
 
     ############################## Used for level 4 debugging ##############################
     if level == 4:
@@ -77,11 +81,14 @@ if __name__ == '__main__':
               (6, 25))
         attack_combinations4 = list(
             itertools.permutations(list(range(25)), 6))
+        print(f"Total number of attack comb")
+        print(
+            f"Total number of attack combinations for this level: {len(attack_combinations4):_}")
 
         # Creating divided_attack_combination (list of sublists) for level 4 (hard-coded)
         print("Creating the divided attack combination for level 4")
         divided_attack_combinations4 = [
-            list(attack_combinations4)[i::num_cores]for i in range(num_cores)]
+            list(attack_combinations4)[i::division_factor_iter]for i in range(division_factor_iter)]
         print(
             f"The length of the divided list for level 4 is: {len(divided_attack_combinations4)}")
         print(
@@ -126,6 +133,9 @@ if __name__ == '__main__':
         attack_combinations = list(
             itertools.permutations(list(range(num_Weapons)), num_Gladiators))
 
+    print(
+        f"Total number of attack combinations for this level: {len(attack_combinations):_}")
+
     # Chosing the initial guess
     my_guess = random.choice(attack_combinations)
 
@@ -140,9 +150,10 @@ if __name__ == '__main__':
         # For attack with a very large list of attack combinations
         if len(attack_combinations) > 100_000_000:
             print(f"Possible attack combinations more than 100 mio...")
+            pool = multiprocessing.Pool(processes=num_cores)
             master_list = []  # Collector list of filtered results
             # Iterating through the list of lists (devided_attack_combination) and sending attack
-            for x in range(num_cores):
+            for x in range(division_factor_iter):
                 print(f'=====>Sending attack nr.{attack_counter}: {my_guess}')
                 print(
                     f"Number of possible attacks: {len(divided_attack_combinations[x]):_}")
@@ -171,24 +182,29 @@ if __name__ == '__main__':
                     print(f"The score is: {score}")
                     # > {'response': [2, 1]}
                     print(
-                        f"Starting multiprocessing iteration {x+1}/{num_cores}")
+                        f"Starting multiprocessing iteration {x+1}/{division_factor_iter}")
                     start_time = time.time()
                     # Create a more granular list of lists
                     more_divided_attack_combinations = [list(divided_attack_combinations[x])[
-                        i::division_factor]for i in range(division_factor)]
-                    result = multi_proc(
-                        num_cores, more_divided_attack_combinations)
+                        i::division_factor_2order]for i in range(division_factor_2order)]
+                    result = pool.map_async(partial_function(
+                        curated, my_guess, score), more_divided_attack_combinations)
+                    result = result.get(20)
+                    flat_list = [s for sublist in result for s in sublist]
+
+                    master_list.append(flat_list)
                     end_time = time.time()
                     total_time = end_time - start_time
-                    master_list.append(result)
                     print(
-                        f"Multiprocessing for iteration {x+1}/{num_cores} took {total_time:.2f} seconds.")
+                        f"Multiprocessing for iteration {x+1}/{division_factor_iter} took {total_time:.2f} seconds.")
                     # Choose a different attack combination for the next itteration to increase the chances of a better score
                     if score in [[1, 0], [2, 0], [2, 1]]:
                         # Choose a guess from the filtered list
                         my_guess = random.choice(master_list[-1])
                     print(f"The next guess is: {my_guess}")
                     attack_counter += 1
+            pool.close()
+            pool.join()
             if run == False:
                 break
             # Create a unified list from multiple result lists
@@ -218,7 +234,7 @@ if __name__ == '__main__':
             elif req_response == {'message': 'Onto the next level'}:
                 print(f"You got the correct combination {my_guess}")
                 level += 1
-                attack_counter = 0
+                attack_counter = 1
 
                 # Generate all unique combinations of the attack guesses
                 if level == 4:
@@ -240,6 +256,8 @@ if __name__ == '__main__':
                           (num_Gladiators, num_Weapons))
                     attack_combinations = list(
                         itertools.permutations(list(range(num_Weapons)), num_Gladiators))
+                    print(
+                        f"Total number of attack combinations for this level: {len(attack_combinations):_}")
                     my_guess = random.choice(attack_combinations)
 
             elif req_response == {'response': [0, 0]}:
@@ -253,7 +271,7 @@ if __name__ == '__main__':
                 # > {'response': [2, 1]}
                 start_time = time.time()
                 divided_attack_combinations = [list(attack_combinations)[
-                    i::num_cores]for i in range(num_cores)]
+                    i::division_factor_2order]for i in range(division_factor_2order)]
                 result = multi_proc(
                     num_cores, divided_attack_combinations)
                 end_time = time.time()
@@ -288,7 +306,7 @@ if __name__ == '__main__':
             elif req_response == {'message': 'Onto the next level'}:
                 print(f"You got the correct combination {my_guess}")
                 level += 1
-                attack_counter = 0
+                attack_counter = 1
 
                 # Generate all unique combinations of the attack guesses
                 if level == 4:
@@ -301,7 +319,7 @@ if __name__ == '__main__':
                     # Creating divided_attack_combination for level 4 (hard-coded)
                     print("Creating the divided attack combination for level 4")
                     divided_attack_combinations4 = [
-                        list(attack_combinations4)[i::num_cores]for i in range(num_cores)]
+                        list(attack_combinations4)[i::division_factor_iter]for i in range(division_factor_iter)]
                     print(
                         f"The length of the divided list for level 4 is: {len(divided_attack_combinations4)}")
                     print(
@@ -358,6 +376,7 @@ if __name__ == '__main__':
                 attack_combinations = list(
                     itertools.permutations(list(range(num_Weapons)), num_Gladiators))
                 my_guess = random.choice(attack_combinations)
+                attack_counter = 1
 
             elif 'hash' in req_response:
                 print(req_response)
