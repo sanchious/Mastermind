@@ -35,7 +35,7 @@ def partial_function(input_function, first_arg, second_arg):
     return partial_function
 
 
-# Multiprocessing function to devide large list in multiple chunks based on the number of cores and process in parallel
+# Multiprocessing function to create multiprocesses based of provided number of cores
 def multi_proc(num_cores, attack_list):
     print(
         f"The lenght of the list being processed is: {len(attack_list):_}")
@@ -64,10 +64,11 @@ if __name__ == '__main__':
 
     # Use this to debug a particular level (Disable 'reseting the game')
     level = 1
+
     # num_cores = multiprocessing.cpu_count()
-    num_cores = 5
-    division_factor_iter = 10
-    division_factor_2order = 5
+    num_cores = 4  # adjust based on your machine
+    division_factor_iter = 8  # adjust based on your machine
+    division_factor_2order = 4  # adjust based on your machine
 
     print(
         f"Number of cores used: {num_cores}.\n"
@@ -150,8 +151,8 @@ if __name__ == '__main__':
         # For attack with a very large list of attack combinations
         if len(attack_combinations) > 100_000_000:
             print(f"Possible attack combinations more than 100 mio...")
-            pool = multiprocessing.Pool(processes=num_cores)
             master_list = []  # Collector list of filtered results
+            pool = multiprocessing.Pool(processes=num_cores)
             # Iterating through the list of lists (devided_attack_combination) and sending attack
             for x in range(division_factor_iter):
                 print(f'=====>Sending attack nr.{attack_counter}: {my_guess}')
@@ -181,8 +182,8 @@ if __name__ == '__main__':
                     score = req_response['response']
                     print(f"The score is: {score}")
                     # > {'response': [2, 1]}
-                    print(
-                        f"Starting multiprocessing iteration {x+1}/{division_factor_iter}")
+                    # print(
+                    #     f"Starting multiprocessing iteration {x+1}/{division_factor_iter}")
                     start_time = time.time()
                     # Create a more granular list of lists
                     more_divided_attack_combinations = [list(divided_attack_combinations[x])[
@@ -201,7 +202,7 @@ if __name__ == '__main__':
                     if score in [[1, 0], [2, 0], [2, 1]]:
                         # Choose a guess from the filtered list
                         my_guess = random.choice(master_list[-1])
-                    print(f"The next guess is: {my_guess}")
+                    # print(f"The next guess is: {my_guess}")
                     attack_counter += 1
             pool.close()
             pool.join()
@@ -219,7 +220,7 @@ if __name__ == '__main__':
 
         # For attack with a large list of attack combinations - just one iteration of multiprocessing flow
         elif len(attack_combinations) > 3_000_000:
-            print(f"Possible attack combinations more than 10 mio...")
+            print(f"Possible attack combinations more than 3 mio...")
             req_attack = requests.post('https://mastermind.praetorian.com/level/{0}/'.format(level),
                                        data=json.dumps({'guess': my_guess}), headers=headers)
             print(f'=====>Sending attack nr.{attack_counter}: {my_guess}')
